@@ -1,0 +1,8 @@
+[theme]
+# Dark mode high-contrast aesthetic
+base="dark"
+primaryColor="#4d9aff"
+backgroundColor="#0A1128"
+secondaryBackgroundColor="#142142"
+textColor="#f4f6fa"
+font="sans serif"

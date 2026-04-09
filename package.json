@@ -1,0 +1,14 @@
+{
+  "name": "sign-language-ai",
+  "version": "1.0.0",
+  "description": "Multi-Modal Sign Language Web Platform",
+  "scripts": {
+    "start": "concurrently \"npm run start:node\" \"npm run start:react\"",
+    "start:node": "cd backend_node && node server.js",
+    "start:react": "cd frontend && npm run dev",
+    "install:all": "npm install && cd backend_node && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
