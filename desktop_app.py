@@ -11,7 +11,7 @@ Architecture (Antigravity Framework):
   └─────────────────────────────────────────────────────────┘
 
 Controls:
-  [1] Toggle language:  ASL → ISL → CSL → ASL …
+  [1] Currently only ISL is supported.
   [S] Toggle speech mute/unmute
   [R] Reset text buffer
   [Q] or [ESC] Quit
@@ -261,13 +261,13 @@ def _confidence_color(conf: float) -> tuple:
 # MAIN APPLICATION
 # ─────────────────────────────────────────────────────────────
 
-LANG_CYCLE = ["ASL", "ISL", "CSL"]
+LANG_CYCLE = ["ISL"]
 
 
 def main():
     log.info("=" * 65)
     log.info("  SLR Studio — Multi-Modal Sign Language Recognition")
-    log.info("  ASL | ISL | CSL   ·   Real-Time Inference")
+    log.info("  ISL   ·   Real-Time Inference")
     log.info("=" * 65)
 
     # ── MediaPipe setup ───────────────────────────────────────

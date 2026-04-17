@@ -1,24 +1,16 @@
 """
-train_slr_models.py — Three-Headed Bi-LSTM Training Pipeline
+train_slr_models.py — ISL Bi-LSTM Training Pipeline
 =============================================================
 Strategy:
-  1. Train a BASE model on ASL (largest dataset).
-  2. Fine-tune ISL head  (two-handed SOV grammar adaptation).
-  3. Fine-tune CSL head  (stroke-based character-mimicry adaptation).
+  1. Train a model on ISL.
 
 Outputs:
-  models/base_asl_model.keras
   models/isl_model.keras
-  models/csl_model.keras
-  models/base_asl_model.tflite
   models/isl_model.tflite
-  models/csl_model.tflite
   reports/model_performance.md
 
 Usage:
     python train_slr_models.py
-    python train_slr_models.py --lang ASL        # Train only ASL base
-    python train_slr_models.py --skip-base       # Skip base training, fine-tune only
 """
 
 import os
@@ -48,8 +40,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from config import (
     LANDMARK_DIR, MODELS_DIR, REPORTS_DIR, LOGS_DIR,
     SEQUENCE_LENGTH, TOTAL_FEATURES,
-    BATCH_SIZE, EPOCHS_BASE, EPOCHS_FINETUNE,
-    LEARNING_RATE, FINETUNE_LR, DROPOUT_RATE,
+    BATCH_SIZE, EPOCHS_BASE,
+    LEARNING_RATE, DROPOUT_RATE,
     LSTM_UNITS, DENSE_UNITS,
 )
 
@@ -71,10 +63,6 @@ log = logging.getLogger(__name__)
 # DATA LOADING
 # ─────────────────────────────────────────────────────────────
 def load_landmark_dataset(lang: str) -> tuple[np.ndarray, np.ndarray, list]:
-    """
-    Load all .npy landmark sequences for a given language.
-    Returns (X, y_encoded, class_names).
-    """
     lang_dir = Path(LANDMARK_DIR) / lang
     manifest_file = lang_dir / "manifest.json"
 
@@ -126,22 +114,12 @@ def build_bilstm_model(
     lstm_units:     list   = LSTM_UNITS,
     dense_units:    list   = DENSE_UNITS,
     dropout_rate:   float  = DROPOUT_RATE,
-    trainable_base: bool   = True,
     name:           str    = "SLR_BiLSTM",
 ) -> keras.Model:
-    """
-    Bi-directional LSTM classifier.
-
-    Architecture:
-        Input → Masking → BiLSTM × 2 → Dropout →
-        Dense × 2 → Dropout → Softmax Output
-    """
     inp = keras.Input(shape=(seq_len, feature_dim), name="landmarks")
 
-    # Masking layer — handles zero-padded frames
     x = layers.Masking(mask_value=0.0)(inp)
 
-    # Bi-LSTM stack
     for i, units in enumerate(lstm_units):
         return_seq = (i < len(lstm_units) - 1)
         x = layers.Bidirectional(
@@ -158,7 +136,6 @@ def build_bilstm_model(
 
     x = layers.Dropout(dropout_rate, name="dropout_lstm")(x)
 
-    # Dense classification head
     for j, units in enumerate(dense_units):
         x = layers.Dense(
             units,
@@ -173,20 +150,10 @@ def build_bilstm_model(
     model = keras.Model(inputs=inp, outputs=out, name=name)
     return model
 
-
-def freeze_base_layers(model: keras.Model, unfreeze_top_n: int = 2):
-    """Freeze all layers except the top N for fine-tuning."""
-    for layer in model.layers[:-unfreeze_top_n]:
-        layer.trainable = False
-    for layer in model.layers[-unfreeze_top_n:]:
-        layer.trainable = True
-
-
 # ─────────────────────────────────────────────────────────────
 # TRAINING HELPERS
 # ─────────────────────────────────────────────────────────────
 def get_callbacks(model_name: str, patience: int = 10) -> list:
-    """Standard training callbacks."""
     ckpt_path = os.path.join(MODELS_DIR, f"{model_name}_best.keras")
     return [
         callbacks.ModelCheckpoint(
@@ -225,7 +192,6 @@ def train_model(
     lr:          float,
     model_name:  str,
 ) -> keras.callbacks.History:
-    """Compile and train a model."""
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=lr),
         loss="sparse_categorical_crossentropy",
@@ -245,39 +211,9 @@ def train_model(
 
 
 # ─────────────────────────────────────────────────────────────
-# TRANSFER LEARNING — Fine-Tune Head
-# ─────────────────────────────────────────────────────────────
-def build_finetuned_model(
-    base_model:    keras.Model,
-    num_classes:   int,
-    lang:          str,
-) -> keras.Model:
-    """
-    Build a fine-tuned model by replacing the output layer of the base
-    ASL model and freezing the shared BiLSTM backbone.
-    """
-    # Clone base model architecture
-    new_model = keras.models.clone_model(base_model)
-    new_model.set_weights(base_model.get_weights())
-
-    # Freeze backbone (BiLSTM layers), keep dense head trainable
-    freeze_base_layers(new_model, unfreeze_top_n=4)
-
-    # Replace output layer
-    inp = new_model.input
-    x   = new_model.get_layer("dropout_dense_1").output   # Last shared dense
-    out = layers.Dense(num_classes, activation="softmax",
-                       name=f"output_{lang.lower()}")(x)
-
-    finetuned = keras.Model(inputs=inp, outputs=out, name=f"SLR_{lang}_Head")
-    return finetuned
-
-
-# ─────────────────────────────────────────────────────────────
 # EVALUATION & REPORTING
 # ─────────────────────────────────────────────────────────────
 def evaluate_model(model, X_test, y_test, class_names, lang, history=None):
-    """Run evaluation, generate plots and return metrics dict."""
     y_pred_proba = model.predict(X_test, verbose=0)
     y_pred       = np.argmax(y_pred_proba, axis=1)
 
@@ -287,7 +223,6 @@ def evaluate_model(model, X_test, y_test, class_names, lang, history=None):
                                    output_dict=True)
     cm = confusion_matrix(y_test, y_pred)
 
-    # Confusion matrix plot
     fig, ax = plt.subplots(figsize=(max(10, len(class_names)), max(8, len(class_names) * 0.8)))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
                 xticklabels=class_names, yticklabels=class_names, ax=ax)
@@ -299,7 +234,6 @@ def evaluate_model(model, X_test, y_test, class_names, lang, history=None):
     plt.savefig(cm_path, dpi=120)
     plt.close()
 
-    # Training curves
     if history:
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
         axes[0].plot(history.history["accuracy"],     label="Train")
@@ -328,7 +262,6 @@ def evaluate_model(model, X_test, y_test, class_names, lang, history=None):
 
 
 def export_tflite(model: keras.Model, name: str):
-    """Export a Keras model to TFLite format."""
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     tflite_model = converter.convert()
@@ -340,7 +273,6 @@ def export_tflite(model: keras.Model, name: str):
 
 
 def generate_report(results: dict):
-    """Write model_performance.md."""
     report_path = os.path.join(REPORTS_DIR, "model_performance.md")
     timestamp   = time.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -357,7 +289,7 @@ def generate_report(results: dict):
     for lang, metrics in results.items():
         lines.append(
             f"| {lang} | {metrics['accuracy']:.2%} | "
-            f"{metrics['num_classes']} | Bi-LSTM + Transfer Learning |"
+            f"{metrics['num_classes']} | Bi-LSTM |"
         )
 
     lines += ["", "---", ""]
@@ -407,21 +339,16 @@ def generate_report(results: dict):
 # ─────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="SLR Training Pipeline")
-    parser.add_argument("--lang",       default="all",
-                        choices=["all", "ASL", "ISL", "CSL"])
-    parser.add_argument("--skip-base",  action="store_true",
-                        help="Skip ASL base training (load existing checkpoint)")
     args = parser.parse_args()
 
     results = {}
 
-    # ── 1. ASL BASE MODEL ────────────────────────────────────
-    if args.lang in ("all", "ASL") and not args.skip_base:
-        log.info("=" * 60)
-        log.info("PHASE 1 — Training ASL Base Model")
-        log.info("=" * 60)
+    log.info("=" * 60)
+    log.info("PHASE 1 — Training ISL Model")
+    log.info("=" * 60)
 
-        X, y, classes = load_landmark_dataset("ASL")
+    try:
+        X, y, classes = load_landmark_dataset("ISL")
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
         )
@@ -429,122 +356,26 @@ def main():
             X_train, y_train, test_size=0.15, random_state=42, stratify=y_train
         )
 
-        log.info(f"ASL splits — Train: {len(X_train)} | Val: {len(X_val)} | Test: {len(X_test)}")
+        isl_model = build_bilstm_model(len(classes), name="SLR_ISL")
 
-        base_model = build_bilstm_model(
-            num_classes=len(classes),
-            name="SLR_ASL_Base",
-        )
-        history = train_model(
-            base_model, X_train, y_train, X_val, y_val,
+        history_isl = train_model(
+            isl_model, X_train, y_train, X_val, y_val,
             epochs=EPOCHS_BASE, lr=LEARNING_RATE,
-            model_name="base_asl_model",
+            model_name="isl_model",
         )
 
-        h5_path = os.path.join(MODELS_DIR, "base_asl_model.keras")
-        base_model.save(h5_path)
-        log.info(f"ASL base model saved -> {h5_path}")
-        # export_tflite(base_model, "base_asl_model")
+        isl_h5 = os.path.join(MODELS_DIR, "isl_model.keras")
+        isl_model.save(isl_h5)
+        log.info(f"ISL model saved -> {isl_h5}")
 
-        # Save class names
-        with open(os.path.join(MODELS_DIR, "asl_classes.json"), "w") as f:
+        with open(os.path.join(MODELS_DIR, "isl_classes.json"), "w") as f:
             json.dump(classes, f, indent=2)
 
-        results["ASL"] = evaluate_model(
-            base_model, X_test, y_test, classes, "ASL", history
+        results["ISL"] = evaluate_model(
+            isl_model, X_test, y_test, classes, "ISL", history_isl
         )
-
-    elif args.skip_base:
-        # Load existing base model for transfer learning
-        asl_path = os.path.join(MODELS_DIR, "base_asl_model.keras")
-        if os.path.exists(asl_path):
-            log.info(f"Loading existing ASL base model from {asl_path}")
-            base_model = keras.models.load_model(asl_path)
-        else:
-            log.error("No existing ASL model found. Run without --skip-base first.")
-            sys.exit(1)
-    else:
-        base_model = None
-
-    # ── 2. ISL FINE-TUNED MODEL ───────────────────────────────
-    if args.lang in ("all", "ISL"):
-        log.info("=" * 60)
-        log.info("PHASE 2 — Fine-tuning ISL Head (Two-Handed SOV Grammar)")
-        log.info("=" * 60)
-
-        try:
-            X, y, classes = load_landmark_dataset("ISL")
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42, stratify=y
-            )
-            X_train, X_val, y_train, y_val = train_test_split(
-                X_train, y_train, test_size=0.15, random_state=42, stratify=y_train
-            )
-
-            if base_model is not None:
-                isl_model = build_finetuned_model(base_model, len(classes), "ISL")
-            else:
-                isl_model = build_bilstm_model(len(classes), name="SLR_ISL")
-
-            history_isl = train_model(
-                isl_model, X_train, y_train, X_val, y_val,
-                epochs=EPOCHS_FINETUNE, lr=FINETUNE_LR,
-                model_name="isl_model",
-            )
-
-            isl_h5 = os.path.join(MODELS_DIR, "isl_model.keras")
-            isl_model.save(isl_h5)
-            log.info(f"ISL model saved -> {isl_h5}")
-            # export_tflite(isl_model, "isl_model")
-
-            with open(os.path.join(MODELS_DIR, "isl_classes.json"), "w") as f:
-                json.dump(classes, f, indent=2)
-
-            results["ISL"] = evaluate_model(
-                isl_model, X_test, y_test, classes, "ISL", history_isl
-            )
-        except Exception as e:
-            log.error(f"ISL training failed: {e}")
-
-    # ── 3. CSL FINE-TUNED MODEL ───────────────────────────────
-    if args.lang in ("all", "CSL"):
-        log.info("=" * 60)
-        log.info("PHASE 3 — Fine-tuning CSL Head (Stroke-Based Gestures)")
-        log.info("=" * 60)
-
-        try:
-            X, y, classes = load_landmark_dataset("CSL")
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42, stratify=y
-            )
-            X_train, X_val, y_train, y_val = train_test_split(
-                X_train, y_train, test_size=0.15, random_state=42, stratify=y_train
-            )
-
-            if base_model is not None:
-                csl_model = build_finetuned_model(base_model, len(classes), "CSL")
-            else:
-                csl_model = build_bilstm_model(len(classes), name="SLR_CSL")
-
-            history_csl = train_model(
-                csl_model, X_train, y_train, X_val, y_val,
-                epochs=EPOCHS_FINETUNE, lr=FINETUNE_LR,
-                model_name="csl_model",
-            )
-
-            csl_h5 = os.path.join(MODELS_DIR, "csl_model.keras")
-            csl_model.save(csl_h5)
-            log.info(f"CSL model saved -> {csl_h5}")
-            # export_tflite(csl_model, "csl_model")
-
-            with open(os.path.join(MODELS_DIR, "csl_classes.json"), "w") as f:
-                json.dump(classes, f, indent=2)
-
-            results["CSL"] = evaluate_model(
-                csl_model, X_test, y_test, classes, "CSL", history_csl
-            )
-        except Exception as e:
-            log.error(f"CSL training failed: {e}")
+    except Exception as e:
+        log.error(f"ISL training failed: {e}")
 
     # ── 4. REPORT ─────────────────────────────────────────────
     if results:

@@ -11,9 +11,7 @@ import os
 # ─────────────────────────────────────────────────────────────
 BASE_DIR        = os.path.dirname(os.path.abspath(__file__))
 DATASET_DIR     = os.path.join(BASE_DIR, "datasets")
-ASL_DATASET_DIR = os.path.join(DATASET_DIR, "WLASL")
 ISL_DATASET_DIR = os.path.join(DATASET_DIR, "Include")
-CSL_DATASET_DIR = os.path.join(DATASET_DIR, "DEVISIGN")
 
 LANDMARK_DIR    = os.path.join(BASE_DIR, "landmarks")
 MODELS_DIR      = os.path.join(BASE_DIR, "models")
@@ -22,7 +20,7 @@ LOGS_DIR        = os.path.join(BASE_DIR, "logs")
 
 # Auto-create directories
 for _dir in [LANDMARK_DIR, MODELS_DIR, REPORTS_DIR, LOGS_DIR,
-             ASL_DATASET_DIR, ISL_DATASET_DIR, CSL_DATASET_DIR]:
+             ISL_DATASET_DIR]:
     os.makedirs(_dir, exist_ok=True)
 
 # ─────────────────────────────────────────────────────────────
@@ -59,8 +57,8 @@ TOTAL_FEATURES    = POSE_FEATURES + FACE_FEATURES + LH_FEATURES + RH_FEATURES  #
 # ─────────────────────────────────────────────────────────────
 SEQUENCE_LENGTH   = 30     # Frames per gesture sample
 BATCH_SIZE        = 32
-EPOCHS_BASE       = 50     # ASL base training
-EPOCHS_FINETUNE   = 25     # ISL / CSL fine-tuning
+EPOCHS_BASE       = 50     # Base training
+EPOCHS_FINETUNE   = 25     # Fine-tuning
 LEARNING_RATE     = 1e-3
 FINETUNE_LR       = 1e-4
 DROPOUT_RATE      = 0.4
@@ -71,26 +69,12 @@ DENSE_UNITS       = [64, 32]
 # LANGUAGE SETTINGS
 # ─────────────────────────────────────────────────────────────
 LANGUAGES = {
-    "ASL": {
-        "name":         "American Sign Language",
-        "grammar":      "SVO",
-        "tts_lang":     "en",
-        "tts_voice_id": None,   # Uses system default
-        "display_lang": "English",
-    },
     "ISL": {
         "name":         "Indian Sign Language",
         "grammar":      "SOV",
         "tts_lang":     "hi",
         "tts_voice_id": None,
         "display_lang": "Hindi/English",
-    },
-    "CSL": {
-        "name":         "Chinese Sign Language",
-        "grammar":      "SVO",
-        "tts_lang":     "zh",
-        "tts_voice_id": None,
-        "display_lang": "Chinese",
     },
 }
 

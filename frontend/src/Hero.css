@@ -1,0 +1,159 @@
+.hero-container {
+  min-height: 100vh;
+  /* Match the Dashboard Animated Background */
+  background: linear-gradient(120deg, #0B0E14, #1B1035, #0B2136, #150E2A);
+  background-size: 300% 300%;
+  animation: ambientGlow 18s ease infinite;
+  display: flex;
+  flex-direction: column;
+  padding: 0 5%;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Match the Dashboard Floating Orbs */
+.hero-container::before, .hero-container::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: 0;
+  opacity: 0.6;
+  pointer-events: none;
+  animation: floatOrb 25s ease-in-out infinite alternate;
+}
+.hero-container::before {
+  top: -10%; left: -10%;
+  width: 50vw; height: 50vw;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.4), transparent 70%);
+}
+.hero-container::after {
+  bottom: -20%; right: -10%;
+  width: 60vw; height: 60vw;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.3), transparent 70%);
+  animation-duration: 35s;
+  animation-direction: alternate-reverse;
+}
+
+.hero-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 0;
+  position: relative;
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+}
+.brand h1 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.6rem;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+}
+.nav-links a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.nav-links a:hover {
+  color: #fff;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-nav-login {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-nav-login:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.btn-nav-signup {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-nav-signup:hover {
+  opacity: 0.9;
+}
+
+.hero-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding-bottom: 10vh;
+  position: relative;
+  z-index: 10;
+}
+
+.hero-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 5.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #fff;
+  margin: 0 0 2rem 0;
+  letter-spacing: -2px;
+}
+
+.text-glow {
+  color: #a78bfa;
+  text-shadow: 0 0 40px rgba(139, 92, 246, 0.4), 0 0 80px rgba(139, 92, 246, 0.2);
+}
+
+.hero-subtitle {
+  color: #cbd5e1;
+  font-size: 1.2rem;
+  max-width: 650px;
+  line-height: 1.6;
+  margin-bottom: 3rem;
+}
+
+.btn-hero-start {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #fff;
+  border: none;
+  padding: 1.2rem 3rem;
+  border-radius: 8px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+}
+.btn-hero-start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px rgba(139, 92, 246, 0.5);
+}

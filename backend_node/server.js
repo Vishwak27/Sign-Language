@@ -27,7 +27,7 @@ wss.on('connection', (ws) => {
         // For now, this is a placeholder echo.
         const msgStr = message.toString();
         if (msgStr === "TEST") {
-             ws.send(JSON.stringify({ type: "PREDICTION", text: "ASL Recognition Online" }));
+             ws.send(JSON.stringify({ type: "PREDICTION", text: "ISL Recognition Online" }));
         }
     });
 

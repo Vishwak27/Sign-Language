@@ -37,7 +37,7 @@ log = logging.getLogger(__name__)
 class Prediction:
     word:       str    = ""
     confidence: float  = 0.0
-    lang:       str    = "ASL"
+    lang:       str    = "ISL"
     timestamp:  float  = field(default_factory=time.time)
 
 
@@ -56,9 +56,7 @@ class ModelStore:
     """Loads and caches all three language models + class labels."""
 
     CONFIGS = {
-        "ASL": ("base_asl_model.keras", "asl_classes.json"),
         "ISL": ("isl_model.keras",      "isl_classes.json"),
-        "CSL": ("csl_model.keras",      "csl_classes.json"),
     }
 
     def __init__(self):
@@ -269,7 +267,7 @@ class InferenceEngine:
     Consumer reads from get_result() on main loop tick.
     """
 
-    def __init__(self, lang: str = "ASL"):
+    def __init__(self, lang: str = "ISL"):
         self._lang        = lang
         self._store       = ModelStore()
         self._frame_buf   = FrameBuffer()

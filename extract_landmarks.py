@@ -27,7 +27,7 @@ import time
 # Local
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
-    ASL_DATASET_DIR, ISL_DATASET_DIR, CSL_DATASET_DIR,
+    ISL_DATASET_DIR,
     LANDMARK_DIR, MP_CONFIG, SEQUENCE_LENGTH,
     POSE_FEATURES, FACE_FEATURES, LH_FEATURES, RH_FEATURES,
     TOTAL_FEATURES, LOGS_DIR
@@ -58,6 +58,32 @@ def build_holistic():
     mp_holistic = mp.solutions.holistic
     return mp_holistic.Holistic(**MP_CONFIG)
 
+
+def extract_and_normalize_isl_keypoints(frames_results) -> np.ndarray:
+    """
+    Extracts hand landmarks specifically optimized for Indian Sign Language (ISL),
+    flattens them, and normalizes them based on wrist position for distance-invariance.
+    """
+    # 2 hands * 21 landmarks * 3 coords = 126 features
+    landmarks_data = np.zeros(126) 
+    
+    if frames_results.left_hand_landmarks:
+        coords = np.array([[lm.x, lm.y, lm.z] for lm in frames_results.left_hand_landmarks.landmark])
+        wrist = coords[0]
+        norm = coords - wrist
+        max_val = np.max(np.abs(norm))
+        if max_val > 0: norm = norm / max_val
+        landmarks_data[0:63] = norm.flatten()
+        
+    if frames_results.right_hand_landmarks:
+        coords = np.array([[lm.x, lm.y, lm.z] for lm in frames_results.right_hand_landmarks.landmark])
+        wrist = coords[0]
+        norm = coords - wrist
+        max_val = np.max(np.abs(norm))
+        if max_val > 0: norm = norm / max_val
+        landmarks_data[63:126] = norm.flatten()
+
+    return landmarks_data
 
 def extract_keypoints(results) -> np.ndarray:
     """
@@ -328,24 +354,11 @@ def generate_demo_landmarks(lang: str, classes: list, samples_per_class: int = 5
 # ─────────────────────────────────────────────────────────────
 # DEMO CLASS VOCABULARIES
 # ─────────────────────────────────────────────────────────────
-ASL_DEMO_CLASSES = [
-    "hello", "thank_you", "please", "yes", "no", "sorry", "help",
-    "water", "food", "more", "stop", "go", "i", "you", "love",
-    "good", "bad", "what", "where", "how",
-]
-
 ISL_DEMO_CLASSES = [
     "namaste", "shukriya", "haan", "nahi", "roko", "pani", "khana",
     "madad", "achha", "bura", "main", "tum", "pyaar", "kahan", "kya",
     "school", "ghar", "kaam", "aao", "jao",
 ]
-
-CSL_DEMO_CLASSES = [
-    "ni_hao", "xie_xie", "shi", "bu", "bang_mang", "shui", "fan",
-    "ting", "qu", "wo", "ni", "ai", "zai_nar", "shen_me", "zen_me",
-    "xuexiao", "jia", "gongzuo", "lai", "hao",
-]
-
 
 # ─────────────────────────────────────────────────────────────
 # MAIN
@@ -354,8 +367,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Multi-Modal SLR — Landmark Extraction Pipeline"
     )
-    parser.add_argument("--lang",    default="all",
-                        choices=["all", "ASL", "ISL", "CSL"],
+    parser.add_argument("--lang",    default="ISL",
+                        choices=["ISL"],
                         help="Which language dataset to process")
     parser.add_argument("--workers", type=int, default=4,
                         help="Number of parallel worker threads")
@@ -364,9 +377,7 @@ def main():
     args = parser.parse_args()
 
     lang_map = {
-        "ASL": (ASL_DATASET_DIR, ASL_DEMO_CLASSES),
         "ISL": (ISL_DATASET_DIR, ISL_DEMO_CLASSES),
-        "CSL": (CSL_DATASET_DIR, CSL_DEMO_CLASSES),
     }
 
     langs = list(lang_map.keys()) if args.lang == "all" else [args.lang]

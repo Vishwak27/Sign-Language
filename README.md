@@ -1,48 +1,56 @@
-# SLR Studio — Multi-Modal Sign Language Recognition
+# ISL SignSense — Indian Sign Language Learning Platform
 
-> **Real-time ASL · ISL · CSL recognition with Sign-to-Text & Sign-to-Speech output**
-> Built with the Antigravity Framework — 2026
+> **Real-time ISL recognition with an interactive Gamified Quiz Mode**
+> Built with MediaPipe, FastAPI, and React — 2026
+
+Welcome to the beginner-centric ISL learning platform. Designing for Indian Sign Language (ISL) requires a dedicated approach because ISL relies heavily on two-handed, spatially complex signs (unlike ASL). This platform employs specific distance-invariant wrist-normalization techniques to accurately track these signs.
 
 ---
 
-## ⚡ Quick Start (3 commands)
+## ⚡ Quick Start
+
+### 1. Backend API (FastAPI + WebSockets)
+The backend does the heavy lifting for real-time video processing and feature extraction.
 
 ```bash
 # 1. Install all dependencies
-pip install -r requirements.txt
+pip install -r requirements.txt fastapi uvicorn websockets opencv-python mediapipe
 
 # 2. Set up environment + generate synthetic demo data
 python setup.py
 
-# 3. Train demo models (uses synthetic data if no real dataset)
-python train_slr_models.py
+# 3. Launch the Real-Time API Bridge
+uvicorn fastapi_server:app --reload --port 8000
+```
 
-# 4. Launch the real-time app
-python app.py
+### 2. Frontend Interface (React/Next.js)
+The frontend serves the gamified "Quiz Mode" UI to users.
+
+```bash
+cd frontend
+npm install
+npm install lucide-react react-webcam
+npm run dev
 ```
 
 ---
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌────────────────────────────────────────────────────────────┐
-│           SLR Studio — Antigravity Framework               │
+│                    ISL SignSense Platform                  │
 ├────────────────────────────────────────────────────────────┤
-│ Thread 1 — MainThread (Camera + OpenCV UI)                 │
-│   • Captures frames at 30 FPS                              │
-│   • Runs MediaPipe Holistic for landmark extraction        │
-│   • Renders skeleton overlay + full HUD                    │
+│ Client-Side (React)                                        │
+│   • Captures webcam frames at ~15-30 FPS                   │
+│   • Renders Gamified Dashboard & Live Confidence HUD       │
+│   • Streams frames to backend via WebSockets               │
 ├────────────────────────────────────────────────────────────┤
-│ Thread 2 — PredictionAsyncWorker (High Priority)           │
-│   • Bi-LSTM inference on 30-frame landmark sequences       │
-│   • Temporal smoothing + prediction smoothing              │
-│   • Buffer & Flush for complete sentence detection         │
-├────────────────────────────────────────────────────────────┤
-│ Thread 3 — SpeechDaemon                                    │
-│   • pyttsx3 (offline) or gTTS (online) TTS                │
-│   • Priority queue — NEVER blocks the UI thread           │
-│   • Emotion-modulated pitch/rate/volume                    │
+│ Server-Side (FastAPI WebSocket Bridge)                     │
+│   • Parses Base64 frames using OpenCV                      │
+│   • Runs MediaPipe Holistic Hand Tracking                  │
+│   • Normalizes 2-handed coordinates relative to the wrist  │
+│   • Scores the gesture and streams confidence back to UI   │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -50,121 +58,55 @@ python app.py
 
 ## 📁 Project Structure
 
-```
+```text
 Sign Language Project/
-├── app.py                  ← Main real-time application
-├── config.py               ← All settings (landmarks, model, UI)
-├── extract_landmarks.py    ← Multi-threaded video → .npy pipeline
-├── train_slr_models.py     ← Three-headed Bi-LSTM training
-├── inference_engine.py     ← Async inference + text buffer
-├── emotion_detector.py     ← Facial landmark → emotion state
-├── tts_engine.py           ← Non-blocking TTS daemon
-├── setup.py                ← Environment verification
-├── requirements.txt        ← All dependencies
-│
-├── datasets/
-│   ├── WLASL/              ← ASL dataset (place videos here)
-│   │   └── <class>/video.mp4
-│   ├── Include/            ← ISL dataset
-│   └── DEVISIGN/           ← CSL dataset
-│
-├── landmarks/              ← Extracted .npy landmark files
-│   ├── ASL/
-│   ├── ISL/
-│   └── CSL/
-│
-├── models/                 ← Trained model files
-│   ├── base_asl_model.h5
-│   ├── isl_model.h5
-│   ├── csl_model.h5
-│   └── *.tflite
-│
-├── reports/                ← model_performance.md + charts
-└── logs/                   ← Runtime logs
+├── frontend/src/App.jsx    ← React Gamified Quiz Dashboard
+├── fastapi_server.py       ← Real-time inference WebSocket API
+├── config.py               ← Configurations for Data & Training
+├── extract_landmarks.py    ← ISL Wrist-Normalized .npy generator
+├── train_slr_models.py     ← Core BiLSTM Training script
+├── inference_engine.py     ← Continuous Inference Engine
+├── app.py                  ← Legacy Streamlit Local App
+├── setup.py                ← Environment verification & Mock data
+└── requirements.txt        
 ```
 
 ---
 
-## 🎯 Training Pipeline
+## 🎯 Model Training Pipeline (ISL Focus)
 
-### Step 1 – Extract Landmarks
-
+**Step 1 – Extract Landmarks (With ISL Normalization)**
 ```bash
-# Using real datasets
-python extract_landmarks.py --lang ASL --workers 8
-python extract_landmarks.py --lang ISL --workers 8
-python extract_landmarks.py --lang CSL --workers 8
+# Using real dataset (Place videos in datasets/Include/<class>/video.mp4)
+python extract_landmarks.py
 
 # OR generate synthetic demo data (no real dataset needed)
-python extract_landmarks.py --demo --lang all
+python extract_landmarks.py --demo
 ```
 
-### Step 2 – Train the Three-Headed Model
-
+**Step 2 – Train the ISL Model**
 ```bash
-# Train all three (ASL base → ISL fine-tune → CSL fine-tune)
 python train_slr_models.py
-
-# Train only ASL base
-python train_slr_models.py --lang ASL
-
-# Skip base training, fine-tune with existing checkpoint
-python train_slr_models.py --skip-base
 ```
-
-### Step 3 – View Results
 
 Reports are saved to `reports/model_performance.md`
 
 ---
 
-## 🖥️ Real-Time App Controls
+## ☁️ AWS Deployment Strategy
 
-| Key | Action |
-|-----|--------|
-| `1` | Cycle language: ASL → ISL → CSL |
-| `S` | Toggle speech mute/unmute |
-| `R` | Reset text buffer |
-| `Q` / `ESC` | Quit |
+To deploy this platform with minimal "video lag", serverless cold starts must be avoided.
 
----
+**1. Frontend (React UI)**
+*   Host the static interactive app on **AWS Amplify**.
+*   This uses Amazon CloudFront globally to serve assets instantly to users.
 
-## 🧠 Model Architecture
+**2. Backend API (Persistent WebSocket Inference)**
+*   **Do not use AWS Lambda** for the WebSocket inference loop, as cold-starts heavily degrade the real-time feedback ring.
+*   Package the FastAPI app in a Docker container and deploy it to **Amazon ECS with AWS Fargate**. This keeps the WebSocket server continuously running and easily auto-scalable based on concurrent learners.
 
-```
-Input (30 frames × 1629 features)
-    │
-    ├─ Masking Layer (handles zero-padded frames)
-    │
-    ├─ BiLSTM(128) + BatchNorm
-    │
-    ├─ BiLSTM(64)  + BatchNorm + Dropout(0.4)
-    │
-    ├─ Dense(64) → Dropout
-    │
-    ├─ Dense(32) → Dropout
-    │
-    └─ Softmax(num_classes)
-```
-
-**Transfer Learning Strategy:**
-1. Train **ASL Base Model** on the full WLASL dataset (largest)
-2. Freeze BiLSTM backbone, replace + fine-tune **ISL Head** (two-handed, SOV grammar)
-3. Freeze BiLSTM backbone, replace + fine-tune **CSL Head** (stroke-based gestures)
-
----
-
-## 🎙️ TTS & Emotion
-
-The emotion detector analyzes MediaPipe face mesh landmarks in real-time:
-
-| Emotion | Trigger | TTS Rate | Volume | Pitch |
-|---------|---------|----------|--------|-------|
-| Neutral | Default | 155 wpm | 85% | 1.0× |
-| Happy | Wide mouth + raised brows | 170 wpm | 90% | 1.1× |
-| Angry | Narrowed eyes + open mouth | 190 wpm | 100% | 0.85× |
-| Sad | Drooped eyes + closed mouth | 130 wpm | 70% | 0.95× |
-| Questioning | Raised brows + slight open | 140 wpm | 75% | 1.15× |
+**3. Datasets & Models**
+*   **Amazon S3** for persistent storage of new training videos and compiled `.keras`/`.tflite` model files.
 
 ---
 
@@ -172,29 +114,14 @@ The emotion detector analyzes MediaPipe face mesh landmarks in real-time:
 
 | Language | Dataset | Source |
 |----------|---------|--------|
-| ASL | WLASL-2000 | https://dxli94.github.io/WLASL/ |
-| ISL | INCLUDE-50 | https://zenodo.org/record/4010759 |
-| CSL | DEVISIGN-G | http://vipl.ict.ac.cn/resources/databases/ |
+| ISL | INCLUDE-50 | [Zenodo INCLUDE](https://zenodo.org/record/4010759) |
 
-Place videos in `datasets/<LANG>/<class_label>/video.mp4`
+Place videos in `datasets/Include/<class_label>/video.mp4`
 
 ---
 
 ## ⚙️ Configuration
 
-All settings are in `config.py`:
-
+All ML logic settings are in `config.py`:
 - `SEQUENCE_LENGTH` — frames per gesture (default: 30)
 - `INFERENCE_THRESHOLD` — min confidence to accept (default: 0.75)
-- `PAUSE_TIMEOUT_SECONDS` — silence time before flushing sentence (default: 1.8s)
-- `MP_CONFIG` — MediaPipe Holistic settings
-- `EMOTION_TTS_PARAMS` — TTS parameter tuning per emotion
-
----
-
-## 🔧 Requirements
-
-- Python 3.10+
-- Webcam
-- 8GB RAM minimum (16GB recommended for training)
-- GPU optional but recommended for training (CUDA 12.x)

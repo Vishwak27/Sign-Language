@@ -35,12 +35,12 @@ st.set_page_config(
 if "tts_enabled" not in st.session_state:
     st.session_state.tts_enabled = False
 if "current_lang" not in st.session_state:
-    st.session_state.current_lang = "ASL"
+    st.session_state.current_lang = "ISL"
 
 # ── 2. GLOBAL ENGINES ────────────────────────────────────────────────
 @st.cache_resource
 def get_inference_engine():
-    engine = InferenceEngine(lang="ASL")
+    engine = InferenceEngine(lang="ISL")
     engine.start()
     return engine
 
@@ -114,7 +114,7 @@ with st.sidebar:
     st.divider()
     st.subheader("⚙️ Settings")
     
-    new_lang = st.selectbox("Language Engine", ["ASL", "ISL", "CSL"], index=["ASL", "ISL", "CSL"].index(st.session_state.current_lang))
+    new_lang = st.selectbox("Language Engine", ["ISL"], index=0)
     if new_lang != st.session_state.current_lang:
         st.session_state.current_lang = new_lang
         engine.set_language(new_lang)

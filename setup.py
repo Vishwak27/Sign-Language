@@ -90,12 +90,8 @@ def install_missing(missing: list):
 # ─────────────────────────────────────────────────────────────
 
 DIRECTORIES = [
-    "datasets/WLASL",
     "datasets/Include",
-    "datasets/DEVISIGN",
-    "landmarks/ASL",
     "landmarks/ISL",
-    "landmarks/CSL",
     "models",
     "reports",
     "logs",
@@ -168,10 +164,10 @@ def check_webcam():
 def generate_demo_data():
     header("Generating Synthetic Demo Dataset")
     info("This creates fake landmark data so you can test the full pipeline")
-    info("without needing the real WLASL / Include / DEVISIGN datasets.")
+    info("without needing the real datasets.")
     print()
     result = subprocess.run(
-        [sys.executable, "extract_landmarks.py", "--demo", "--lang", "all"],
+        [sys.executable, "extract_landmarks.py", "--demo"],
         text=True
     )
     if result.returncode == 0:
@@ -226,8 +222,8 @@ def main():
         print(f"    2. python app.py                  ← Launch real-time SLR")
         print()
         print(f"  {YELLOW}To use real datasets:{RESET}")
-        print(f"    Place videos in:  datasets/WLASL/<class>/video.mp4")
-        print(f"    Then run:         python extract_landmarks.py --lang ASL")
+        print(f"    Place videos in:  datasets/Include/<class>/video.mp4")
+        print(f"    Then run:         python extract_landmarks.py")
     else:
         print(f"{RED}  ✗ Some packages failed to install:{RESET}")
         for p in missing:
