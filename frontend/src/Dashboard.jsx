@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import { Volume2, VolumeX, Sparkles, Trophy, CheckCircle, Target, ArrowRight, Play, LogOut } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Trophy, CheckCircle, Target, ArrowRight, Play, LogOut, LayoutDashboard, Database, Bell, MessageSquare, Settings, HelpCircle, Activity, Book, Sun } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import './App.css';
 
@@ -12,6 +12,7 @@ const CURRICULUM = [
 
 function App() {
   const webcamRef = useRef(null);
+  const [activeView, setActiveView] = useState('quiz');
   const [activeLevel, setActiveLevel] = useState(0);
   const [targetIdx, setTargetIdx] = useState(0);
   const [targetSign, setTargetSign] = useState(CURRICULUM[0].items[0]);
@@ -102,119 +103,152 @@ function App() {
   return (
     <div className="dashboard">
       {/* SIDEBAR */}
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-icon">
-            <Sparkles size={24} color="#fff" />
-          </div>
+      <aside className="minimal-sidebar">
+        <div className="minimal-brand">
+          <Sparkles size={24} color="#3b82f6" />
           <h1>ISL Learn</h1>
         </div>
 
-        <div className="stats-card">
-           <div className="stat-item">
-             <Trophy size={18} color="#facc15" />
-             <span>Score: <strong>{score}</strong></span>
-           </div>
-           <div className="stat-item">
-             <Target size={18} color="#ef4444" />
-             <span>Streak: <strong>{streak}x</strong></span>
-           </div>
+        <div style={{ padding: '0 1.5rem', marginBottom: '1rem', display: 'flex', gap: '1rem', color: '#94a3b8', fontSize: '0.9rem' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Trophy size={16} color="#facc15"/> {score}</div>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Target size={16} color="#ef4444"/> {streak}x</div>
         </div>
 
-        <div className="curriculum">
-          <h3 className="section-title">Curriculum</h3>
-           {CURRICULUM.map((mod, idx) => (
-             <div 
-               key={idx} 
-               className={`module-card ${idx === activeLevel ? 'active' : ''} ${idx < activeLevel ? 'completed' : ''}`}
-               onClick={() => {
-                 setActiveLevel(idx);
-                 setTargetIdx(0);
-                 setTargetSign(CURRICULUM[idx].items[0]);
-                 setQuizActive(false);
-               }}
-             >
-               <div className="module-header">
-                 <span>Level {mod.level}</span>
-                 {idx < activeLevel ? <CheckCircle size={16} color="#10b981" /> : null}
-               </div>
-               <h4>{mod.title}</h4>
-               <p>{mod.items.join(', ')}</p>
-             </div>
-           ))}
-        </div>
+        <nav className="minimal-nav">
+          <div className="nav-title" style={{ padding: '0 1.5rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', marginBottom: '0.5rem', fontWeight: 600 }}>Curriculum</div>
+          <div className={`nav-item ${activeLevel === 0 && activeView === 'quiz' ? 'active' : ''}`} onClick={() => { setActiveView('quiz'); setActiveLevel(0); setTargetIdx(0); setTargetSign(CURRICULUM[0].items[0]); setQuizActive(false); }}>
+            <Book size={20} />
+            <span>Level 1: The Basics</span>
+          </div>
+          <div className={`nav-item ${activeLevel === 1 && activeView === 'quiz' ? 'active' : ''}`} onClick={() => { setActiveView('quiz'); setActiveLevel(1); setTargetIdx(0); setTargetSign(CURRICULUM[1].items[0]); setQuizActive(false); }}>
+            <MessageSquare size={20} />
+            <span>Level 2: Greetings</span>
+          </div>
+          <div className={`nav-item ${activeLevel === 2 && activeView === 'quiz' ? 'active' : ''}`} onClick={() => { setActiveView('quiz'); setActiveLevel(2); setTargetIdx(0); setTargetSign(CURRICULUM[2].items[0]); setQuizActive(false); }}>
+            <Sun size={20} />
+            <span>Level 3: Everyday</span>
+          </div>
 
-        <div className="control-group mt-auto" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <button 
-            className={`toggle-btn ${ttsEnabled ? 'active' : ''}`}
-            onClick={() => setTtsEnabled(!ttsEnabled)}
-          >
-            {ttsEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-            Voice Feedback
-          </button>
-          <button 
-            className="toggle-btn"
-            style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
-            onClick={() => supabase.auth.signOut()}
-          >
+          <div className="nav-title" style={{ padding: '0 1.5rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', marginBottom: '0.5rem', marginTop: '1.5rem', fontWeight: 600 }}>Preferences</div>
+          <div className={`nav-item ${activeView === 'settings' ? 'active' : ''}`} onClick={() => { setActiveView('settings'); setQuizActive(false); }}>
+            <Settings size={20} />
+            <span>Account Settings</span>
+          </div>
+        </nav>
+
+        <div className="minimal-nav-bottom">
+          <div className="nav-item" onClick={() => setTtsEnabled(!ttsEnabled)}>
+            {ttsEnabled ? <Volume2 size={20} color="#3b82f6" /> : <VolumeX size={20} />}
+            <span style={{ color: ttsEnabled ? '#3b82f6' : 'inherit' }}>Voice Feedback {ttsEnabled ? '(On)' : ''}</span>
+          </div>
+          <div className="nav-item" onClick={() => supabase.auth.signOut()}>
             <LogOut size={20} />
-            Sign Out
-          </button>
+            <span>Sign Out</span>
+          </div>
         </div>
       </aside>
 
       {/* MAIN CONTENT */}
       <main className="main-stage">
-        
-        <header className="quiz-header">
-          <h2>ISL Interactive Quiz Mode</h2>
-          <p>Two-handed spatial recognition active.</p>
-        </header>
+        {activeView === 'settings' ? (
+          <div className="settings-view" style={{ animation: 'slideUp 0.5s ease', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <header className="quiz-header">
+              <h2>Account Settings</h2>
+              <p>Manage your preferences and profile details securely.</p>
+            </header>
 
-        {/* HERO AREA */}
-        <div className={`quiz-container ${isSuccess ? 'success-pulse' : ''}`}>
-           <div className="target-display">
-             <span className="target-label">SIGN THIS:</span>
-             <h1 className="target-word">{targetSign}</h1>
-           </div>
-
-           <div className="video-wrapper">
-             <Webcam
-                ref={webcamRef}
-                audio={false}
-                screenshotFormat="image/jpeg"
-                className={`webcam ${isSuccess ? 'success-glow' : ''}`}
-                videoConstraints={{ facingMode: "user" }}
-             />
-             
-             {!quizActive && targetSign !== "Course Complete!" && (
-               <div className="overlay-start">
-                 <button className="btn-start" onClick={() => setQuizActive(true)}>
-                   <Play size={24} /> Start Challenge
-                 </button>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+               <h3 style={{ marginTop: 0, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', fontWeight: 600 }}>Profile Information</h3>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1.5rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.5rem' }}>Email Address</label>
+                    <input type="text" value="vvishwakumar19@gmail.com" disabled style={{ width: '100%', padding: '0.8rem 1rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#94a3b8', cursor: 'not-allowed', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.5rem' }}>Display Name</label>
+                    <input type="text" defaultValue="Vishwa Kumar" style={{ width: '100%', padding: '0.8rem 1rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
                </div>
-             )}
+            </div>
 
-             {/* LIVE CONFIDENCE RING UI */}
-             {quizActive && (
-               <div className="confidence-hud">
-                 <div className="hud-label">AI Confidence</div>
-                 <div className="progress-bar-bg">
-                    <div className="progress-bar-fill" style={{ width: `${confidence}%`, background: confidence > 80 ? '#10b981' : confidence > 40 ? '#f59e0b' : '#ef4444' }}></div>
-                 </div>
-                 <div className="hud-value">{confidence}%</div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+               <h3 style={{ marginTop: 0, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', fontWeight: 600 }}>Application Preferences</h3>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <div>
+                       <div style={{ color: '#fff', fontWeight: 500 }}>High Contrast UI</div>
+                       <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Improve visibility of UI elements for enhanced accessibility.</div>
+                     </div>
+                     <button style={{ padding: '0.5rem 1.5rem', borderRadius: '50px', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', cursor: 'pointer', fontFamily: 'Inter' }}>Toggle</button>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <div>
+                       <div style={{ color: '#fff', fontWeight: 500 }}>Experimental AI Model</div>
+                       <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Enable the NeuralACT Beta spatial gesture recognition processor.</div>
+                     </div>
+                     <button style={{ padding: '0.5rem 1.5rem', borderRadius: '50px', border: '1px solid #3b82f6', background: 'rgba(59, 130, 246, 0.1)', color: '#fff', cursor: 'pointer', fontFamily: 'Inter' }}>Enable Mode</button>
+                  </div>
                </div>
-             )}
-             
-             {isSuccess && (
-               <div className="success-overlay">
-                 <CheckCircle size={64} color="#10b981" />
-                 <h2>Great Job! +{10 + streak*2}</h2>
-               </div>
-             )}
-           </div>
-        </div>
+            </div>
 
+            <div style={{ marginTop: '1rem' }}>
+              <button style={{ padding: '0.8rem 2.5rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter', fontSize: '1rem', boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)' }}>Save Preferences</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <header className="quiz-header">
+              <h2>ISL Interactive Quiz Mode</h2>
+              <p>Two-handed spatial recognition active.</p>
+            </header>
+
+            {/* HERO AREA */}
+            <div className={`quiz-container ${isSuccess ? 'success-pulse' : ''}`}>
+               <div className="target-display">
+                 <span className="target-label">SIGN THIS:</span>
+                 <h1 className="target-word">{targetSign}</h1>
+               </div>
+
+               <div className="video-wrapper">
+                 {quizActive && (
+                   <Webcam
+                      ref={webcamRef}
+                      audio={false}
+                      screenshotFormat="image/jpeg"
+                      className={`webcam ${isSuccess ? 'success-glow' : ''}`}
+                      videoConstraints={{ facingMode: "user" }}
+                   />
+                 )}
+                 
+                 {!quizActive && targetSign !== "Course Complete!" && (
+                   <div className="overlay-start">
+                     <button className="btn-start" onClick={() => setQuizActive(true)}>
+                       <Play size={24} /> Start Challenge
+                     </button>
+                   </div>
+                 )}
+
+                 {/* LIVE CONFIDENCE RING UI */}
+                 {quizActive && (
+                   <div className="confidence-hud">
+                     <div className="hud-label">AI Confidence</div>
+                     <div className="progress-bar-bg">
+                        <div className="progress-bar-fill" style={{ width: `${confidence}%`, background: confidence > 80 ? '#10b981' : confidence > 40 ? '#f59e0b' : '#ef4444' }}></div>
+                     </div>
+                     <div className="hud-value">{confidence}%</div>
+                   </div>
+                 )}
+                 
+                 {isSuccess && (
+                   <div className="success-overlay">
+                     <CheckCircle size={64} color="#10b981" />
+                     <h2>Great Job! +{10 + streak*2}</h2>
+                   </div>
+                 )}
+               </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
